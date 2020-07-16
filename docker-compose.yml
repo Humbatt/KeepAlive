@@ -1,0 +1,11 @@
+version: '3.4'
+
+services:
+  keepalive:
+    image: ${DOCKER_REGISTRY-}keepalive
+    build:
+      context: .
+      dockerfile: KeepAlive/Dockerfile
+    environment:
+     KEEP_ALIVE_URL: "https://www.humbatt.com"
+     KEEP_ALIVE_DELAY: "5"
