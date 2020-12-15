@@ -3,6 +3,12 @@
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1-alpine3.12 AS base
 WORKDIR /app
 
+ENV \
+    # Unset the keep alive url
+    KEEP_ALIVE_URL= \
+    # Set the default delay
+    KEEP_ALIVE_DELAY=5
+
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1.302-alpine3.12 AS build
 WORKDIR /src
 COPY ["KeepAlive/KeepAlive.csproj", "KeepAlive/"]
