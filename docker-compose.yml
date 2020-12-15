@@ -9,3 +9,7 @@ services:
     environment:
      KEEP_ALIVE_URL: "https://www.humbatt.com"
      KEEP_ALIVE_DELAY: "5"
+    volumes:
+      - type: bind
+        source: /c/keepaliveconfig
+        target: /keepaliveconfig

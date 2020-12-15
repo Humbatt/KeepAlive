@@ -7,6 +7,8 @@ ENV \
     # Set the default delay
     KEEP_ALIVE_DELAY=5
 
+VOLUME ["/keepaliveconfig"]
+
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1.302-alpine3.12 AS build
 WORKDIR /src
 COPY ["KeepAlive/KeepAlive.csproj", "KeepAlive/"]
