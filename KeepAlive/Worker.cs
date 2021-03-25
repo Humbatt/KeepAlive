@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using KeepAlive.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -15,6 +18,7 @@ namespace KeepAlive
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
+        private SitesConfig _sitesConfig;
 
         public Worker(ILogger<Worker> logger)
         {
@@ -42,6 +46,7 @@ namespace KeepAlive
 
             var isSiteMap = (isSitemapInt == 1) ? true : false;
 
+            await ProcessJsonAsync();
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -136,6 +141,54 @@ namespace KeepAlive
             
 
 
+
+
+        }
+
+        private async Task ProcessJsonAsync()
+        {
+            var outPath = @"/keepaliveconfig";
+            if (Directory.Exists(outPath))
+            {
+                
+                var configFile = Path.Combine(outPath, "siteconfig.json");
+
+                if (!File.Exists(configFile))
+                {
+                    //generate base file
+                    await GenerateJsonConfigAsync(configFile);
+                }
+
+                var jString = await File.ReadAllTextAsync(configFile);
+
+                var sitesConfig = JsonSerializer.Deserialize<SitesConfig>(jString);
+
+                _sitesConfig = sitesConfig;
+
+            }
+        }
+
+        private async Task GenerateJsonConfigAsync(string filePath)
+        {
+            var sites = new Models.SitesConfig()
+            {
+                Sites = new List<Models.SiteConfig>()
+                {
+                    new Models.SiteConfig()
+                    {
+                        Url = "",
+                        IsSiteMap = true,
+                        Interval = 15,
+                    }
+                }
+            };
+
+            var jString = JsonSerializer.Serialize<Models.SitesConfig>(sites, new JsonSerializerOptions()
+            {
+                WriteIndented = true,
+            });
+
+            await File.WriteAllTextAsync(filePath, jString);
 
 
         }

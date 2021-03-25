@@ -1,0 +1,9 @@
+﻿{
+  "Sites": [
+    {
+      "Url": "",
+      "IsSiteMap": true,
+      "Interval": 15
+    }
+  ]
+}
