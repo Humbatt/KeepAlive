@@ -19,6 +19,7 @@ namespace KeepAlive
     {
         private readonly ILogger<Worker> _logger;
         private SitesConfig _sitesConfig;
+        private List<Trigger> _triggers = new List<Trigger>();
 
         public Worker(ILogger<Worker> logger)
         {
@@ -50,62 +51,117 @@ namespace KeepAlive
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                //check to see ifthe sites have been added to the triggers list
+                if (_triggers != null && _triggers.Count > 0)
                 {
-                    string pingUrl = Environment.GetEnvironmentVariable("KEEP_ALIVE_URL");
-                    _logger.LogInformation(pingUrl);
-
-                    if (!string.IsNullOrEmpty(pingUrl))
-                    {
-                        using (var webClient = new WebClient())
-                        {
-                            if (isSiteMap)
-                            {
-                                try
-                                {
-                                    //find the sitemap entries
-                                    _logger.LogInformation($"Connecting to sitemap at: {pingUrl}");
-
-                                    var result = await webClient.DownloadStringTaskAsync(new Uri(pingUrl));
-
-                                    if (!string.IsNullOrWhiteSpace(result))
-                                        await ProcessSiteMapAsync(result, webClient);
-                                }
-                                catch (Exception ex)
-                                {
-                                    //fall back to simple download
-                                    _logger.LogInformation($"Connecting to: {pingUrl}");
-
-                                    var result = await webClient.DownloadDataTaskAsync(new Uri(pingUrl));
-                                }
-
-
-                            }
-                            else
-                            {
-                                _logger.LogInformation($"Connecting to: {pingUrl}");
-
-                                var result = await webClient.DownloadDataTaskAsync(new Uri(pingUrl));
-                            }
-                        }
-                            
-                        
-                    }
-
-
                     _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
 
+                    foreach (var trigger in _triggers)
+                    {
+                        try
+                        {
+                          
+
+                            if (trigger.Due < DateTime.Now)
+                            {
+                                var site = trigger.Site;
+
+                                using (var webClient = new WebClient())
+                                {
+                                    if (site.IsSiteMap)
+                                    {
+                                        try
+                                        {
+                                            //find the sitemap entries
+                                            _logger.LogInformation($"Connecting to sitemap at: {site.Url}");
+
+                                            var result = await webClient.DownloadStringTaskAsync(new Uri(site.Url));
+
+                                            if (!string.IsNullOrWhiteSpace(result))
+                                                await ProcessSiteMapAsync(result, webClient);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            //fall back to simple download
+                                            _logger.LogInformation($"Connecting to: {site.Url}");
+
+                                            var result = await webClient.DownloadDataTaskAsync(new Uri(site.Url));
+                                        }
+
+
+                                    }
+                                    else
+                                    {
+                                        _logger.LogInformation($"Connecting to: {site.Url}");
+
+                                        var result = await webClient.DownloadDataTaskAsync(new Uri(site.Url));
+                                    }
+                                }
+
+
+                                trigger.Due = DateTime.Now.AddMinutes(site.Interval); 
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                        }
+
+                    }
+
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogInformation($"Worker exception at: {DateTimeOffset.Now} - {ex.Message}");
+                    _logger.LogInformation("Worker building site Urls at: {time}", DateTimeOffset.Now);
 
+                    if (_sitesConfig.Sites.Any())
+                    {
+                        var validSites = _sitesConfig.Sites.Where(x => !string.IsNullOrWhiteSpace(x.Url));
+
+                        if (validSites.Any())
+                        {
+                            foreach (var site in validSites)
+                            {
+                                _triggers.Add(new Trigger()
+                                {
+                                    Site = site,
+                                    Due = DateTime.Now,
+                                });
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        try
+                        {
+                            string pingUrl = Environment.GetEnvironmentVariable("KEEP_ALIVE_URL");
+                            _logger.LogInformation(pingUrl);
+
+                            if (!string.IsNullOrEmpty(pingUrl))
+                            {
+                                _triggers.Add(new Trigger()
+                                {
+                                    Site = new SiteConfig()
+                                    {
+                                        Url = pingUrl,
+                                        IsSiteMap = isSiteMap,
+                                        Interval = duration,
+                                    },
+                                    Due = DateTime.Now,
+                                });
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogInformation($"Worker exception at: {DateTimeOffset.Now} - {ex.Message}");
+
+                        }
+
+                    }
                 }
-               
-
-                
-                await Task.Delay(TimeSpan.FromMinutes(duration), stoppingToken);
-
 
             }
         }
