@@ -9,7 +9,7 @@ ENV \
     # Set the default delay
     KEEP_ALIVE_DELAY=5 \
     # Is the Url a site map
-    URL_IS_SITEMAP = 0 
+    URL_IS_SITEMAP=0 
 
 VOLUME ["/keepaliveconfig"]
 

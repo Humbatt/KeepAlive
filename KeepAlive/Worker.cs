@@ -6,9 +6,9 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TurnerSoftware.SitemapTools;
 
 namespace KeepAlive
 {
@@ -59,18 +59,14 @@ namespace KeepAlive
                                 try
                                 {
                                     //find the sitemap entries
-                                    var sitemapQuery = new SitemapQuery();
-                                    var sitemapEntries = await sitemapQuery.GetSitemapAsync(new Uri(pingUrl));
+                                    _logger.LogInformation($"Connecting to sitemap at: {pingUrl}");
 
-                                    if (sitemapEntries.Urls.Any())
-                                    {
-                                        foreach (var entry in sitemapEntries.Urls)
-                                        {
-                                            var result = await webClient.DownloadDataTaskAsync(entry.Location);
-                                        }
-                                    }
+                                    var result = await webClient.DownloadStringTaskAsync(new Uri(pingUrl));
+
+                                    if (!string.IsNullOrWhiteSpace(result))
+                                        await ProcessSiteMapAsync(result, webClient);
                                 }
-                                catch (Exception)
+                                catch (Exception ex)
                                 {
                                     //fall back to simple download
                                     _logger.LogInformation($"Connecting to: {pingUrl}");
@@ -109,10 +105,38 @@ namespace KeepAlive
             }
         }
 
-        private async Task ProcessSiteMapAsync(string xmlData)
+        private async Task ProcessSiteMapAsync(string xmlData, WebClient client)
         {
+            try
+            {
+                var xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(xmlData);
 
+                var root = xmlDoc.DocumentElement;
+
+
+                var urls = root.GetElementsByTagName("loc");
+
+                if (urls.Count > 0)
+                {
+                   foreach (XmlNode node in urls)
+                    {
+                        var address = node.InnerText;
+
+                        _logger.LogInformation($"Connecting to: {address}");
+
+                        var result = await client.DownloadDataTaskAsync(new Uri(address));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
             
+
+
+
 
         }
     }
