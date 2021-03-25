@@ -56,18 +56,26 @@ namespace KeepAlive
                 {
                     _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
 
-                    foreach (var trigger in _triggers)
+                    var dueTriggers = _triggers.Where(x => x.Due < DateTime.Now);
+
+                    if (!dueTriggers.Any())
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+
+                        continue;
+                    }
+                        
+                    foreach (var trigger in dueTriggers)
                     {
                         try
                         {
-                          
+                            var site = trigger.Site;
 
-                            if (trigger.Due < DateTime.Now)
+                            try
                             {
-                                var site = trigger.Site;
-
                                 using (var webClient = new WebClient())
                                 {
+
                                     if (site.IsSiteMap)
                                     {
                                         try
@@ -97,10 +105,13 @@ namespace KeepAlive
                                         var result = await webClient.DownloadDataTaskAsync(new Uri(site.Url));
                                     }
                                 }
-
-
-                                trigger.Due = DateTime.Now.AddMinutes(site.Interval); 
                             }
+                            catch (Exception ex)
+                            {
+
+                            }
+
+                            trigger.Due = DateTime.Now.AddMinutes(site.Interval);
                         }
                         catch (Exception ex)
                         {
