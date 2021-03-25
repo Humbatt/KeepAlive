@@ -4,10 +4,12 @@ FROM mcr.microsoft.com/dotnet/core/runtime:3.1-alpine3.12 AS base
 WORKDIR /app
 
 ENV \
-    # Unset the keep alive url
+    # Set the keep alive url
     KEEP_ALIVE_URL= \
     # Set the default delay
-    KEEP_ALIVE_DELAY=5
+    KEEP_ALIVE_DELAY=5 \
+    # Is the Url a site map
+    URL_IS_SITEMAP = 0 
 
 VOLUME ["/keepaliveconfig"]
 
