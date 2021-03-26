@@ -126,7 +126,7 @@ namespace KeepAlive
                 {
                     _logger.LogInformation("Worker building site Urls at: {time}", DateTimeOffset.Now);
 
-                    if (_sitesConfig.Sites.Any())
+                    if (_sitesConfig != null && _sitesConfig.Sites != null && _sitesConfig.Sites.Any())
                     {
                         var validSites = _sitesConfig.Sites.Where(x => !string.IsNullOrWhiteSpace(x.Url));
 
@@ -222,8 +222,12 @@ namespace KeepAlive
 
                 if (!File.Exists(configFile))
                 {
-                    //generate base file
-                    await GenerateJsonConfigAsync(configFile);
+                    string pingUrl = Environment.GetEnvironmentVariable("KEEP_ALIVE_URL");
+
+                    if (string.IsNullOrWhiteSpace(pingUrl))
+                        await GenerateJsonConfigAsync(configFile);
+                    else 
+                        return;
                 }
 
                 var jString = await File.ReadAllTextAsync(configFile);

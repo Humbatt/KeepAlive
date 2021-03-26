@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: KeepAlive/Dockerfile
     environment:
-     KEEP_ALIVE_URL: ""
+     KEEP_ALIVE_URL: "https://www.humbatt.com"
      KEEP_ALIVE_DELAY: "5"
      URL_IS_SITEMAP: "0"
     volumes:
